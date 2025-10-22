@@ -81,10 +81,10 @@ export async function submitLead(email: string, username: string) {
       const newClient = await db
         .insert(clients)
         .values({
-          whop_user_id: `temp-${username}-${Date.now()}`,
+          whopUserId: `temp-${username}-${Date.now()}`,
           username: username,
           email: null,
-          webhook_url: null,
+          webhookUrl: null,
         })
         .returning();
       clientRecord = newClient[0];
