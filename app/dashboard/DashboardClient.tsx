@@ -32,7 +32,8 @@ export default function DashboardClient({ client, leads }: DashboardClientProps)
     }
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | null) => {
+    if (!date) return 'Unknown';
     return new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
