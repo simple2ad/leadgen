@@ -16,12 +16,56 @@ function generateSecurityHash(email: string, username: string): string {
     .slice(0, 16);
 }
 
+// Function to create tables if they don't exist
+async function ensureTablesExist() {
+  try {
+    // Try to create clients table
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS clients (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        whop_user_id TEXT UNIQUE NOT NULL,
+        email TEXT,
+        username TEXT UNIQUE,
+        webhook_url TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    // Try to create leads table
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS leads (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        email TEXT NOT NULL,
+        client_id UUID REFERENCES clients(id),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    // Create indexes
+    await db.execute(`
+      CREATE INDEX IF NOT EXISTS idx_leads_client_id ON leads(client_id)
+    `);
+    await db.execute(`
+      CREATE INDEX IF NOT EXISTS idx_leads_email ON leads(email)
+    `);
+    await db.execute(`
+      CREATE INDEX IF NOT EXISTS idx_leads_created_at ON leads(created_at)
+    `);
+  } catch (error) {
+    console.error('Error creating tables:', error);
+    throw error;
+  }
+}
+
 export async function submitLead(email: string, username: string) {
   try {
     // Basic email validation
     if (!email || !email.includes('@')) {
       return { success: false, error: 'Please enter a valid email address.' };
     }
+
+    // Ensure tables exist before proceeding
+    await ensureTablesExist();
 
     // Find the client by username
     const client = await db
@@ -30,8 +74,22 @@ export async function submitLead(email: string, username: string) {
       .where(eq(clients.username, username))
       .limit(1);
 
+    // If client doesn't exist, create a temporary one
+    let clientRecord;
     if (client.length === 0) {
-      return { success: false, error: 'Invalid capture page.' };
+      // Create a temporary client for this username
+      const newClient = await db
+        .insert(clients)
+        .values({
+          whop_user_id: `temp-${username}-${Date.now()}`,
+          username: username,
+          email: null,
+          webhook_url: null,
+        })
+        .returning();
+      clientRecord = newClient[0];
+    } else {
+      clientRecord = client[0];
     }
 
     // Check if this email already exists for this client
@@ -40,7 +98,7 @@ export async function submitLead(email: string, username: string) {
       .from(leads)
       .where(and(
         eq(leads.email, email),
-        eq(leads.clientId, client[0].id)
+        eq(leads.clientId, clientRecord.id)
       ))
       .limit(1);
 
@@ -54,14 +112,14 @@ export async function submitLead(email: string, username: string) {
       .insert(leads)
       .values({
         email: email.trim().toLowerCase(),
-        clientId: client[0].id,
+        clientId: clientRecord.id,
       })
       .returning();
 
     // Call webhook if client has one configured
-    if (client[0].webhookUrl) {
+    if (clientRecord.webhookUrl) {
       try {
-        await fetch(client[0].webhookUrl, {
+        await fetch(clientRecord.webhookUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -74,9 +132,9 @@ export async function submitLead(email: string, username: string) {
               createdAt: newLead[0].createdAt,
             },
             client: {
-              id: client[0].id,
-              username: client[0].username,
-              email: client[0].email,
+              id: clientRecord.id,
+              username: clientRecord.username,
+              email: clientRecord.email,
             },
           }),
         });
