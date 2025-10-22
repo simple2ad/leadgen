@@ -8,7 +8,7 @@ if (!databaseUrl) {
   throw new Error('DATABASE_URL or POSTGRES_URL environment variable is required');
 }
 
-const sql = neon(databaseUrl);
+export const sql = neon(databaseUrl);
 export const db = drizzle(sql, { schema });
 
 export type Client = typeof schema.clients.$inferSelect;

@@ -1,6 +1,6 @@
 'use server';
 
-import { db } from '@/lib/db';
+import { db, sql } from '@/lib/db';
 import { clients, leads } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
@@ -20,7 +20,7 @@ function generateSecurityHash(email: string, username: string): string {
 async function ensureTablesExist() {
   try {
     // Try to create clients table
-    await db.execute(`
+    await sql(`
       CREATE TABLE IF NOT EXISTS clients (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         whop_user_id TEXT UNIQUE NOT NULL,
@@ -32,7 +32,7 @@ async function ensureTablesExist() {
     `);
 
     // Try to create leads table
-    await db.execute(`
+    await sql(`
       CREATE TABLE IF NOT EXISTS leads (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         email TEXT NOT NULL,
@@ -42,13 +42,13 @@ async function ensureTablesExist() {
     `);
 
     // Create indexes
-    await db.execute(`
+    await sql(`
       CREATE INDEX IF NOT EXISTS idx_leads_client_id ON leads(client_id)
     `);
-    await db.execute(`
+    await sql(`
       CREATE INDEX IF NOT EXISTS idx_leads_email ON leads(email)
     `);
-    await db.execute(`
+    await sql(`
       CREATE INDEX IF NOT EXISTS idx_leads_created_at ON leads(created_at)
     `);
   } catch (error) {
