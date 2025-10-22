@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/db';
 import { clients, leads } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import crypto from 'crypto';
 
@@ -38,8 +38,10 @@ export async function submitLead(email: string, username: string) {
     const existingLead = await db
       .select()
       .from(leads)
-      .where(eq(leads.email, email))
-      .where(eq(leads.clientId, client[0].id))
+      .where(and(
+        eq(leads.email, email),
+        eq(leads.clientId, client[0].id)
+      ))
       .limit(1);
 
     if (existingLead.length > 0) {
