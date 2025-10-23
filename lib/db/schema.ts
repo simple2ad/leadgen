@@ -1,6 +1,6 @@
 import { pgTable, uuid, text, timestamp, varchar, boolean, json } from 'drizzle-orm/pg-core';
 
-export const clients = pgTable('clients', {
+export var clients = pgTable('clients', {
   id: uuid('id').primaryKey().defaultRandom(),
   whopUserId: text('whop_user_id').unique().notNull(),
   email: text('email'),
@@ -12,7 +12,7 @@ export const clients = pgTable('clients', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
 
-export const leads = pgTable('leads', {
+export var leads = pgTable('leads', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: text('email').notNull(),
   name: text('name'),
@@ -21,7 +21,7 @@ export const leads = pgTable('leads', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
 
-export const capturePages = pgTable('capture_pages', {
+export var capturePages = pgTable('capture_pages', {
   id: uuid('id').primaryKey().defaultRandom(),
   clientId: uuid('client_id').references(() => clients.id).notNull(),
   name: text('name').notNull(),
