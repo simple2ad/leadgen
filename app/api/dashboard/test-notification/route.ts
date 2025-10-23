@@ -41,6 +41,11 @@ export async function POST(request: NextRequest) {
       
       // Try to create support channel first
       try {
+        console.log('Attempting to create support channel...', {
+          company_id: process.env.WHOP_COMPANY_ID,
+          user_id: client.whopUserId
+        });
+        
         const supportChannel = await whopClient.supportChannels.create({
           company_id: process.env.WHOP_COMPANY_ID || '',
           user_id: client.whopUserId,
@@ -52,34 +57,47 @@ export async function POST(request: NextRequest) {
           channelId: channelId
         });
       } catch (createError: any) {
+        console.log('Support channel creation failed:', {
+          error: createError.message,
+          status: createError.status,
+          stack: createError.stack
+        });
+        
         // If channel already exists, try to find existing channels
-        if (createError.message?.includes('already been added') || createError.status === 422) {
+        if (createError.message?.includes('already been added') || 
+            createError.status === 422 || 
+            createError.message?.includes('422')) {
           console.log('Support channel already exists, trying to find existing channels...');
           
-          // List chat channels and find one for this user
-          const channels = await whopClient.chatChannels.list({ 
-            company_id: process.env.WHOP_COMPANY_ID || '' 
-          });
-          
-          // Find a channel that matches our user
-          let foundChannel = null;
-          for await (const channel of channels) {
-            // Check if this channel is associated with our user
-            // We'll use the channel ID as a fallback since we can't easily match by user
-            // In a real implementation, we might need to store channel IDs in our database
-            foundChannel = channel;
-            break; // Use the first channel for now as a fallback
-          }
-          
-          if (foundChannel) {
-            channelId = foundChannel.id;
-            console.log('Found existing support channel:', {
-              clientId: client.id,
-              whopUserId: client.whopUserId,
-              channelId: channelId
+          try {
+            // List chat channels and find one for this user
+            const channels = await whopClient.chatChannels.list({ 
+              company_id: process.env.WHOP_COMPANY_ID || '' 
             });
-          } else {
-            throw new Error('Could not find existing support channel for user');
+            
+            // Find a channel that matches our user
+            let foundChannel = null;
+            for await (const channel of channels) {
+              // Check if this channel is associated with our user
+              // We'll use the channel ID as a fallback since we can't easily match by user
+              // In a real implementation, we might need to store channel IDs in our database
+              foundChannel = channel;
+              break; // Use the first channel for now as a fallback
+            }
+            
+            if (foundChannel) {
+              channelId = foundChannel.id;
+              console.log('Found existing support channel:', {
+                clientId: client.id,
+                whopUserId: client.whopUserId,
+                channelId: channelId
+              });
+            } else {
+              throw new Error('Could not find existing support channel for user');
+            }
+          } catch (listError) {
+            console.error('Error listing chat channels:', listError);
+            throw new Error(`Failed to find existing channels: ${listError instanceof Error ? listError.message : 'Unknown error'}`);
           }
         } else {
           throw createError;
