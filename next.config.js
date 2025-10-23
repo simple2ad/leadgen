@@ -9,6 +9,10 @@ const nextConfig = {
         source: '/(.*)',
         headers: [
           {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self' https://*.whop.com https://whop.com https://*.vercel.app https://vercel.com;"
+          },
+          {
             key: 'Access-Control-Allow-Origin',
             value: '*'
           },
