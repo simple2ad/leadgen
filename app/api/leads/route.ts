@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { clients, leads } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,8 +41,7 @@ export async function POST(request: NextRequest) {
     const existingLead = await db
       .select()
       .from(leads)
-      .where(eq(leads.email, email))
-      .where(eq(leads.clientId, client[0].id))
+      .where(and(eq(leads.email, email), eq(leads.clientId, client[0].id)))
       .limit(1);
 
     if (existingLead.length > 0) {
