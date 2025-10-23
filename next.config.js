@@ -1,9 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverActions: {
-      allowedOrigins: ['leadgen-saas.vercel.app', 'localhost:3000', '*.vercel.app']
-    },
+    serverActions: true,
   },
   async headers() {
     return [
