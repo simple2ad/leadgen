@@ -3,6 +3,46 @@ import { db } from '@/lib/db';
 import { clients } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
+export async function GET(request: NextRequest) {
+  try {
+    // Get client ID from query parameter
+    const { searchParams } = new URL(request.url);
+    const clientId = searchParams.get('clientId');
+    
+    if (!clientId) {
+      return NextResponse.json(
+        { success: false, error: 'Client ID required' },
+        { status: 400 }
+      );
+    }
+
+    // Fetch client data
+    const clientData = await db
+      .select()
+      .from(clients)
+      .where(eq(clients.id, clientId))
+      .limit(1);
+
+    if (clientData.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Client not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      client: clientData[0] 
+    });
+  } catch (error) {
+    console.error('Error fetching settings:', error);
+    return NextResponse.json(
+      { success: false, error: 'An error occurred while fetching your settings.' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Get client ID from query parameter or body
@@ -17,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { username, captureName, capturePhone } = body;
+    const { username, captureName, capturePhone, notifyOnNewLeads } = body;
 
     // Validate username if provided
     if (username) {
@@ -55,6 +95,7 @@ export async function POST(request: NextRequest) {
     if (username) updateData.username = username.trim();
     if (captureName !== undefined) updateData.captureName = captureName || false;
     if (capturePhone !== undefined) updateData.capturePhone = capturePhone || false;
+    if (notifyOnNewLeads !== undefined) updateData.notifyOnNewLeads = notifyOnNewLeads || false;
 
     await db
       .update(clients)

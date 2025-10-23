@@ -8,6 +8,7 @@ export const clients = pgTable('clients', {
   webhookUrl: text('webhook_url'),
   captureName: boolean('capture_name').default(false),
   capturePhone: boolean('capture_phone').default(false),
+  notifyOnNewLeads: boolean('notify_on_new_leads').default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
 
