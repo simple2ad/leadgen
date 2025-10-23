@@ -22,8 +22,8 @@ export default async function CapturePage({ params }: PageProps) {
       .limit(1);
 
     const displayName = client.length > 0 ? client[0].username : username;
-    const captureName = client.length > 0 ? client[0].captureName : false;
-    const capturePhone = client.length > 0 ? client[0].capturePhone : false;
+    const captureName = client.length > 0 ? Boolean(client[0].captureName) : false;
+    const capturePhone = client.length > 0 ? Boolean(client[0].capturePhone) : false;
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
