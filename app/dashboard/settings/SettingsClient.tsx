@@ -12,7 +12,9 @@ export default function SettingsClient({ client }: SettingsClientProps) {
   const router = useRouter();
   const [notifyOnNewLeads, setNotifyOnNewLeads] = useState(client.notifyOnNewLeads || false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+  const [testMessage, setTestMessage] = useState('');
 
   const handleSaveSettings = async () => {
     setIsSaving(true);
@@ -40,6 +42,32 @@ export default function SettingsClient({ client }: SettingsClientProps) {
       setSaveMessage('An error occurred while saving.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleTestNotification = async () => {
+    setIsTesting(true);
+    setTestMessage('');
+
+    try {
+      const response = await fetch(`/api/dashboard/test-notification?clientId=${client.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        setTestMessage(result.error || 'Failed to send test notification.');
+      } else {
+        setTestMessage('Test notification sent successfully! Check your Whop messages.');
+      }
+    } catch (error) {
+      setTestMessage('An error occurred while sending test notification.');
+    } finally {
+      setIsTesting(false);
     }
   };
 
@@ -115,6 +143,30 @@ export default function SettingsClient({ client }: SettingsClientProps) {
                   {saveMessage}
                 </p>
               )}
+            </div>
+
+            {/* Test Notification Button */}
+            <div className="pt-4 border-t border-gray-200">
+              <div className="space-y-3">
+                <h3 className="text-base font-medium text-gray-900">Test Notifications</h3>
+                <p className="text-sm text-gray-500">
+                  Send a test notification to verify your notification settings are working correctly.
+                </p>
+                <button
+                  onClick={handleTestNotification}
+                  disabled={isTesting}
+                  className="w-full bg-green-600 text-white py-3 px-4 rounded-md font-medium hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isTesting ? 'Sending Test...' : 'Send Test Notification'}
+                </button>
+                {testMessage && (
+                  <p className={`text-sm text-center mt-3 ${
+                    testMessage.includes('successfully') ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {testMessage}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
