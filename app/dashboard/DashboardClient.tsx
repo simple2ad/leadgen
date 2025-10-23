@@ -146,28 +146,6 @@ export default function DashboardClient({ client, leads }: DashboardClientProps)
             </div>
           </div>
 
-          {/* Webhook Settings */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Webhook Integration</h2>
-            <div className="space-y-3">
-              <p className="text-sm text-gray-600">
-                Set up a webhook URL to receive real-time notifications when you get new leads.
-              </p>
-              <div>
-                <label htmlFor="webhookUrl" className="block text-sm font-medium text-gray-700 mb-1">
-                  Webhook URL
-                </label>
-                <input
-                  type="url"
-                  id="webhookUrl"
-                  value={webhookUrl}
-                  onChange={(e) => setWebhookUrl(e.target.value)}
-                  placeholder="https://your-zapier-webhook-url.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Save Button */}
@@ -253,23 +231,113 @@ export default function DashboardClient({ client, leads }: DashboardClientProps)
           </div>
         </div>
 
-        {/* Zapier Instructions */}
-        <div className="mt-8 bg-blue-50 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-blue-900 mb-3">Zapier Integration Instructions</h3>
-          <div className="space-y-3 text-sm text-blue-800">
-            <p>To integrate with Zapier:</p>
-            <ol className="list-decimal list-inside space-y-1 ml-4">
-              <li>Create a new Zap in Zapier</li>
-              <li>Choose "Webhooks by Zapier" as the trigger</li>
-              <li>Select "Catch Hook" as the trigger event</li>
-              <li>Copy the webhook URL provided by Zapier</li>
-              <li>Paste it in the Webhook URL field above and save</li>
-              <li>Test the webhook by submitting a lead on your capture page</li>
-              <li>Complete your Zap setup with the desired actions</li>
-            </ol>
-            <p className="mt-2">
-              Each new lead will send a POST request to your webhook with lead and client information.
-            </p>
+        {/* Integration Guides */}
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Webhook Settings */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Webhook Integration</h2>
+            <div className="space-y-3">
+              <p className="text-sm text-gray-600">
+                Set up a webhook URL to receive real-time notifications when you get new leads.
+              </p>
+              <div>
+                <label htmlFor="webhookUrl" className="block text-sm font-medium text-gray-700 mb-1">
+                  Webhook URL
+                </label>
+                <input
+                  type="url"
+                  id="webhookUrl"
+                  value={webhookUrl}
+                  onChange={(e) => setWebhookUrl(e.target.value)}
+                  placeholder="https://your-webhook-url.com"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Integration Guides */}
+          <div className="space-y-4">
+            {/* Zapier Guide */}
+            <div className="bg-blue-50 rounded-lg p-4">
+              <details className="group">
+                <summary className="flex justify-between items-center cursor-pointer list-none">
+                  <h3 className="text-lg font-semibold text-blue-900">Zapier Integration</h3>
+                  <svg className="w-5 h-5 text-blue-600 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </summary>
+                <div className="mt-3 space-y-2 text-sm text-blue-800">
+                  <p>To integrate with Zapier:</p>
+                  <ol className="list-decimal list-inside space-y-1 ml-4">
+                    <li>Create a new Zap in Zapier</li>
+                    <li>Choose "Webhooks by Zapier" as the trigger</li>
+                    <li>Select "Catch Hook" as the trigger event</li>
+                    <li>Copy the webhook URL provided by Zapier</li>
+                    <li>Paste it in the Webhook URL field and save</li>
+                    <li>Test the webhook by submitting a lead</li>
+                    <li>Complete your Zap setup with desired actions</li>
+                  </ol>
+                  <p className="mt-2">
+                    Each new lead sends a POST request with lead and client information.
+                  </p>
+                </div>
+              </details>
+            </div>
+
+            {/* n8n Guide */}
+            <div className="bg-green-50 rounded-lg p-4">
+              <details className="group">
+                <summary className="flex justify-between items-center cursor-pointer list-none">
+                  <h3 className="text-lg font-semibold text-green-900">n8n Integration</h3>
+                  <svg className="w-5 h-5 text-green-600 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </summary>
+                <div className="mt-3 space-y-2 text-sm text-green-800">
+                  <p>To integrate with n8n:</p>
+                  <ol className="list-decimal list-inside space-y-1 ml-4">
+                    <li>Create a new workflow in n8n</li>
+                    <li>Add a "Webhook" trigger node</li>
+                    <li>Select "POST" as the method</li>
+                    <li>Copy the webhook URL from n8n</li>
+                    <li>Paste it in the Webhook URL field and save</li>
+                    <li>Test the webhook by submitting a lead</li>
+                    <li>Add your desired automation nodes</li>
+                  </ol>
+                  <p className="mt-2">
+                    The webhook payload includes lead email, name, phone, and client details.
+                  </p>
+                </div>
+              </details>
+            </div>
+
+            {/* Make.com Guide */}
+            <div className="bg-purple-50 rounded-lg p-4">
+              <details className="group">
+                <summary className="flex justify-between items-center cursor-pointer list-none">
+                  <h3 className="text-lg font-semibold text-purple-900">Make.com Integration</h3>
+                  <svg className="w-5 h-5 text-purple-600 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </summary>
+                <div className="mt-3 space-y-2 text-sm text-purple-800">
+                  <p>To integrate with Make.com:</p>
+                  <ol className="list-decimal list-inside space-y-1 ml-4">
+                    <li>Create a new scenario in Make.com</li>
+                    <li>Add a "Webhook" module as the trigger</li>
+                    <li>Select "Custom Webhook"</li>
+                    <li>Copy the webhook URL from Make.com</li>
+                    <li>Paste it in the Webhook URL field and save</li>
+                    <li>Test the webhook by submitting a lead</li>
+                    <li>Add your automation modules</li>
+                  </ol>
+                  <p className="mt-2">
+                    Each lead triggers the webhook with complete lead information.
+                  </p>
+                </div>
+              </details>
+            </div>
           </div>
         </div>
       </div>
