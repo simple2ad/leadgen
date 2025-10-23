@@ -182,8 +182,14 @@ uYiGEfic4Qhni+HMfRBuUphOh7F3k8QgwZc9UlL0AHmyYqtbhL9NuJes6w==
 
     } catch (jwtError) {
       console.error('JWT validation error:', jwtError);
+      const errorMessage = jwtError instanceof Error ? jwtError.message : 'Unknown error';
+      console.log('JWT Error details:', {
+        errorMessage,
+        tokenLength: userToken?.length,
+        tokenPrefix: userToken?.substring(0, 50) + '...'
+      });
       response.headers.set('x-auth-status', 'unauthorized');
-      response.headers.set('x-auth-error', `JWT validation failed: ${jwtError instanceof Error ? jwtError.message : 'Unknown error'}`);
+      response.headers.set('x-auth-error', `JWT validation failed: ${errorMessage}`);
       return response;
     }
 

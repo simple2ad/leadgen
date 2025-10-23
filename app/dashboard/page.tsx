@@ -23,9 +23,22 @@ export default async function DashboardPage() {
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h1>
             <p className="text-gray-600 mb-2">Please access this page through your Whop portal.</p>
-            {authError && (
-              <p className="text-sm text-red-500 mb-4">Error: {authError}</p>
-            )}
+          {authError && (
+            <div className="mb-4">
+              <p className="text-sm text-red-500 mb-2">Error: {authError}</p>
+              {authError.includes('JWT validation failed') && (
+                <div className="text-xs text-red-400 bg-red-50 p-2 rounded border border-red-200">
+                  <strong>JWT Issue Detected:</strong> This could be due to:
+                  <ul className="list-disc list-inside mt-1 ml-2">
+                    <li>Invalid JWT token format</li>
+                    <li>Wrong public key or algorithm</li>
+                    <li>Token expired or malformed</li>
+                    <li>Issuer/audience mismatch</li>
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
           </div>
           
           {/* Debug Information */}
