@@ -35,6 +35,8 @@ export const capturePages = pgTable('capture_pages', {
   buttonColor: text('button_color').default('#3b82f6'),
   buttonTextColor: text('button_text_color').default('#ffffff'),
   fontFamily: text('font_family').default('Inter'),
+  captureName: boolean('capture_name').default(false),
+  capturePhone: boolean('capture_phone').default(false),
   thumbnail: text('thumbnail'), // Base64 encoded screenshot
   isActive: boolean('is_active').default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),

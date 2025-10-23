@@ -15,6 +15,16 @@ interface CapturePageSettings {
   buttonColor: string;
   buttonTextColor: string;
   fontFamily: string;
+  captureName: boolean;
+  capturePhone: boolean;
+}
+
+interface SavedPage {
+  id: string;
+  name: string;
+  slug: string;
+  url: string;
+  createdAt: string;
 }
 
 export default function CaptureBuilderPage() {
@@ -31,10 +41,14 @@ export default function CaptureBuilderPage() {
     buttonColor: '#3b82f6',
     buttonTextColor: '#ffffff',
     fontFamily: 'Inter',
+    captureName: false,
+    capturePhone: false,
   });
 
   const [isSaving, setIsSaving] = useState(false);
-  const [savedPages, setSavedPages] = useState<any[]>([]);
+  const [saveMessage, setSaveMessage] = useState('');
+  const [savedPage, setSavedPage] = useState<SavedPage | null>(null);
+  const [slugError, setSlugError] = useState('');
 
   // Update preview when settings change
   useEffect(() => {
@@ -43,31 +57,56 @@ export default function CaptureBuilderPage() {
 
   const handleSave = async () => {
     setIsSaving(true);
+    setSaveMessage('');
+    setSlugError('');
+
     try {
+      // Validate slug format
+      const slugRegex = /^[a-z0-9-]+$/;
+      if (!slugRegex.test(settings.slug)) {
+        setSlugError('URL slug can only contain lowercase letters, numbers, and hyphens');
+        setIsSaving(false);
+        return;
+      }
+
       console.log('Saving capture page:', settings);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Add to saved pages list
-      const newPage = {
-        ...settings,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString(),
-        thumbnail: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDIwMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTIwIiBmaWxsPSJ1cmwoI2dyYWRpZW50KSIvPgo8ZGVmcz4KPGxpbmVhckdyYWRpZW50IGlkPSJncmFkaWVudCIgeDE9IjAiIHkxPSIwIiB4Mj0iMjAwIiB5Mj0iMTIwIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzY2N2VlYSIvPgo8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3NjRiYTIiLz4KPC9saW5lYXJHcmFkaWVudD4KPC9kZWZzPgo8dGV4dCB4PSIxMDAiIHk9IjYwIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5DYXB0dXJlIFBhZ2UgUHJldmlldzwvdGV4dD4KPC9zdmc+'
-      };
-      
-      setSavedPages(prev => [newPage, ...prev]);
-      alert('Capture page saved successfully!');
+      // Make API call to save the page
+      const response = await fetch('/api/capture-pages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(settings),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        if (result.error.includes('already taken')) {
+          setSlugError(result.error);
+        } else {
+          setSaveMessage(result.error);
+        }
+      } else {
+        setSaveMessage('Capture page saved successfully!');
+        setSavedPage({
+          id: result.page.id,
+          name: result.page.name,
+          slug: result.page.slug,
+          url: result.url,
+          createdAt: result.page.createdAt,
+        });
+      }
     } catch (error) {
       console.error('Error saving capture page:', error);
-      alert('Error saving capture page');
+      setSaveMessage('Error saving capture page. Please try again.');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleInputChange = (field: keyof CapturePageSettings, value: string) => {
+  const handleInputChange = (field: keyof CapturePageSettings, value: string | boolean) => {
     setSettings(prev => ({
       ...prev,
       [field]: value
@@ -92,6 +131,29 @@ export default function CaptureBuilderPage() {
 
     return styles;
   };
+
+  const fontOptions = [
+    'Inter',
+    'Arial',
+    'Georgia',
+    'Times New Roman',
+    'Helvetica',
+    'Verdana',
+    'Roboto',
+    'Open Sans',
+    'Lato',
+    'Montserrat',
+    'Poppins',
+    'Raleway',
+    'Merriweather',
+    'Playfair Display',
+    'Source Sans Pro',
+    'Nunito',
+    'Work Sans',
+    'Quicksand',
+    'Rubik',
+    'Oswald'
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -125,15 +187,23 @@ export default function CaptureBuilderPage() {
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Slug (URL)
+                      URL Slug
                     </label>
                     <input
                       type="text"
                       value={settings.slug}
-                      onChange={(e) => handleInputChange('slug', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onChange={(e) => handleInputChange('slug', e.target.value.toLowerCase())}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        slugError ? 'border-red-300' : 'border-gray-300'
+                      }`}
                       placeholder="my-capture-page"
                     />
+                    {slugError && (
+                      <p className="text-red-600 text-sm mt-1">{slugError}</p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">
+                      Only lowercase letters, numbers, and hyphens allowed
+                    </p>
                   </div>
                   
                   <div>
@@ -158,6 +228,33 @@ export default function CaptureBuilderPage() {
                       rows={3}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
+                  </div>
+
+                  {/* Field Configuration */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Capture Additional Fields
+                    </label>
+                    <div className="space-y-2">
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={settings.captureName}
+                          onChange={(e) => handleInputChange('captureName', e.target.checked)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Capture Full Name</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={settings.capturePhone}
+                          onChange={(e) => handleInputChange('capturePhone', e.target.checked)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Capture Phone Number</span>
+                      </label>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -308,12 +405,9 @@ export default function CaptureBuilderPage() {
                       onChange={(e) => handleInputChange('fontFamily', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="Inter">Inter</option>
-                      <option value="Arial">Arial</option>
-                      <option value="Georgia">Georgia</option>
-                      <option value="Times New Roman">Times New Roman</option>
-                      <option value="Helvetica">Helvetica</option>
-                      <option value="Verdana">Verdana</option>
+                      {fontOptions.map(font => (
+                        <option key={font} value={font}>{font}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -328,6 +422,13 @@ export default function CaptureBuilderPage() {
                 >
                   {isSaving ? 'Saving...' : 'Save Capture Page'}
                 </button>
+                {saveMessage && (
+                  <p className={`text-sm text-center mt-2 ${
+                    saveMessage.includes('successfully') ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {saveMessage}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -364,6 +465,24 @@ export default function CaptureBuilderPage() {
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
+                      {settings.captureName && (
+                        <div>
+                          <input
+                            type="text"
+                            placeholder="Full Name"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      )}
+                      {settings.capturePhone && (
+                        <div>
+                          <input
+                            type="tel"
+                            placeholder="Phone Number"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      )}
                       <button
                         type="submit"
                         className="w-full py-3 px-4 rounded-lg font-medium transition-colors"
@@ -390,38 +509,42 @@ export default function CaptureBuilderPage() {
           </div>
         </div>
 
-        {/* Saved Pages Section */}
-        {savedPages.length > 0 && (
-          <div className="mt-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Capture Pages</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {savedPages.map((page) => (
-                <div key={page.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
-                  <div className="h-32 bg-gray-200 flex items-center justify-center">
-                    {page.thumbnail ? (
-                      <img 
-                        src={page.thumbnail} 
-                        alt={page.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-gray-500">No Preview</span>
-                    )}
+        {/* Saved Page Section */}
+        {savedPage && (
+          <div className="mt-8 bg-white rounded-lg shadow-lg p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Capture Page</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Your Capture Page URL
+                </label>
+                <div className="flex items-center space-x-2">
+                  <div className="flex-1 bg-gray-50 p-3 rounded border">
+                    <code className="text-sm break-all">{savedPage.url}</code>
                   </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold text-gray-900 mb-2">{page.name}</h3>
-                    <p className="text-sm text-gray-600 mb-4">{page.slug}</p>
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-gray-500">
-                        {new Date(page.createdAt).toLocaleDateString()}
-                      </span>
-                      <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                        View Page
-                      </button>
-                    </div>
-                  </div>
+                  <button
+                    onClick={() => window.open(savedPage.url, '_blank')}
+                    className="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 transition-colors whitespace-nowrap"
+                  >
+                    Preview Page
+                  </button>
                 </div>
-              ))}
+                <p className="text-xs text-gray-500 mt-1">
+                  Share this URL to start collecting leads with your custom capture page
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="bg-gray-50 p-3 rounded">
+                  <strong>Page Name:</strong> {savedPage.name}
+                </div>
+                <div className="bg-gray-50 p-3 rounded">
+                  <strong>URL Slug:</strong> {savedPage.slug}
+                </div>
+                <div className="bg-gray-50 p-3 rounded">
+                  <strong>Created:</strong> {new Date(savedPage.createdAt).toLocaleDateString()}
+                </div>
+              </div>
             </div>
           </div>
         )}
