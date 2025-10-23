@@ -8,7 +8,25 @@ export default async function DashboardPage() {
   const headersList = await headers();
   const clientId = headersList.get('x-client-id');
   const clientUsername = headersList.get('x-client-username');
+  const authStatus = headersList.get('x-auth-status');
+  const authError = headersList.get('x-auth-error');
 
+  // Check if authentication failed
+  if (authStatus === 'unauthorized') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h1>
+          <p className="text-gray-600 mb-2">Please access this page through your Whop portal.</p>
+          {authError && (
+            <p className="text-sm text-red-500">Error: {authError}</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Check if client info is missing (shouldn't happen if auth passed)
   if (!clientId || !clientUsername) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">

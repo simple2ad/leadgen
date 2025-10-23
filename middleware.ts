@@ -61,7 +61,10 @@ export async function middleware(request: NextRequest) {
 
     if (!whopToken) {
       console.log('No Whop token found');
-      return NextResponse.redirect(new URL('/unauthorized', request.url));
+      // Instead of redirecting, set auth status header and let dashboard handle it
+      response.headers.set('x-auth-status', 'unauthorized');
+      response.headers.set('x-auth-error', 'No Whop token provided');
+      return response;
     }
 
     // Validate Whop token using Whop API
@@ -73,7 +76,10 @@ export async function middleware(request: NextRequest) {
 
     if (!whopResponse.ok) {
       console.log('Whop API response not OK:', whopResponse.status);
-      return NextResponse.redirect(new URL('/unauthorized', request.url));
+      // Instead of redirecting, set auth status header and let dashboard handle it
+      response.headers.set('x-auth-status', 'unauthorized');
+      response.headers.set('x-auth-error', `Whop API error: ${whopResponse.status}`);
+      return response;
     }
 
     const whopUser = await whopResponse.json();
@@ -128,7 +134,10 @@ export async function middleware(request: NextRequest) {
 
   } catch (error) {
     console.error('Whop authentication error:', error);
-    return NextResponse.redirect(new URL('/unauthorized', request.url));
+    // Instead of redirecting, set auth status header and let dashboard handle it
+    response.headers.set('x-auth-status', 'unauthorized');
+    response.headers.set('x-auth-error', 'Authentication error occurred');
+    return response;
   }
 }
 
