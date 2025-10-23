@@ -181,3 +181,55 @@ uYiGEfic4Qhni+HMfRBuUphOh7F3k8QgwZc9UlL0AHmyYqtbhL9NuJes6w==
     );
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const clientId = searchParams.get('clientId');
+    const pageId = searchParams.get('pageId');
+
+    if (!clientId || !pageId) {
+      return NextResponse.json(
+        { success: false, error: 'Client ID and page ID are required' },
+        { status: 400 }
+      );
+    }
+
+    // Verify the capture page belongs to the client
+    const existingPage = await db
+      .select()
+      .from(capturePages)
+      .where(and(
+        eq(capturePages.id, pageId),
+        eq(capturePages.clientId, clientId)
+      ))
+      .limit(1);
+
+    if (existingPage.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Capture page not found or access denied' },
+        { status: 404 }
+      );
+    }
+
+    // Delete the capture page
+    await db
+      .delete(capturePages)
+      .where(and(
+        eq(capturePages.id, pageId),
+        eq(capturePages.clientId, clientId)
+      ));
+
+    return NextResponse.json({
+      success: true,
+      message: 'Capture page deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Error deleting capture page:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

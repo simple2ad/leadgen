@@ -132,6 +132,29 @@ export default function DashboardClient({ client, leads, capturePages }: Dashboa
     }
   };
 
+  const handleDeleteCapturePage = async (pageId: string, pageName: string) => {
+    if (!confirm(`Are you sure you want to delete the capture page "${pageName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/capture-pages?clientId=${client.id}&pageId=${pageId}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        alert(result.error || 'Failed to delete capture page.');
+      } else {
+        // Remove the page from the current list
+        window.location.reload(); // Reload to refresh the list
+      }
+    } catch (error) {
+      alert('An error occurred while deleting the capture page.');
+    }
+  };
+
   const handleRefreshLeads = async () => {
     setIsRefreshingLeads(true);
     
@@ -200,6 +223,13 @@ export default function DashboardClient({ client, leads, capturePages }: Dashboa
                     >
                       Edit
                     </a>
+                    <button
+                      onClick={() => handleDeleteCapturePage(page.id, page.name)}
+                      className="bg-red-600 text-white px-3 py-1 rounded text-xs font-medium hover:bg-red-700 transition-colors"
+                      title="Delete capture page"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               ))}
