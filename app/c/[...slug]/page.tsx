@@ -1,14 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { db } from '@/lib/db';
-import { capturePages } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { useRouter } from 'next/navigation';
 
 interface CapturePageProps {
   params: {
-    clientId: string;
-    slug: string;
+    slug: string[];
   };
 }
 
@@ -31,6 +28,7 @@ interface CapturePageData {
 }
 
 export default function CapturePage({ params }: CapturePageProps) {
+  const router = useRouter();
   const [pageData, setPageData] = useState<CapturePageData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,9 +44,38 @@ export default function CapturePage({ params }: CapturePageProps) {
       try {
         setIsLoading(true);
         
-        // In a real implementation, you would fetch the capture page data from your API
-        // For now, we'll simulate loading the data
-        const response = await fetch(`/api/capture-pages/${params.clientId}/${params.slug}`);
+        // Handle different URL formats:
+        // - /c/slug (short URL)
+        // - /c/clientId/slug (full URL)
+        
+        let clientId: string | null = null;
+        let slug: string;
+        
+        if (params.slug.length === 1) {
+          // Short URL format: /c/slug
+          slug = params.slug[0];
+          
+          // Resolve slug to get client ID
+          const resolveResponse = await fetch(`/api/capture-pages/resolve/${slug}`);
+          if (!resolveResponse.ok) {
+            throw new Error('Capture page not found');
+          }
+          const resolveData = await resolveResponse.json();
+          clientId = resolveData.clientId;
+        } else if (params.slug.length === 2) {
+          // Full URL format: /c/clientId/slug
+          clientId = params.slug[0];
+          slug = params.slug[1];
+        } else {
+          throw new Error('Invalid URL format');
+        }
+
+        if (!clientId) {
+          throw new Error('Could not resolve capture page');
+        }
+
+        // Fetch the capture page data
+        const response = await fetch(`/api/capture-pages/${clientId}/${slug}`);
         
         if (!response.ok) {
           throw new Error('Capture page not found');
@@ -64,7 +91,7 @@ export default function CapturePage({ params }: CapturePageProps) {
     }
 
     loadCapturePage();
-  }, [params.clientId, params.slug]);
+  }, [params.slug]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,6 +99,8 @@ export default function CapturePage({ params }: CapturePageProps) {
     setMessage('');
 
     try {
+      if (!pageData) return;
+
       const response = await fetch('/api/leads', {
         method: 'POST',
         headers: {
@@ -81,7 +110,7 @@ export default function CapturePage({ params }: CapturePageProps) {
           email,
           name: pageData?.captureName ? name : undefined,
           phone: pageData?.capturePhone ? phone : undefined,
-          clientId: params.clientId,
+          clientId: pageData?.id,
           capturePageId: pageData?.id,
         }),
       });
