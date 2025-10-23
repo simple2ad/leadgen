@@ -116,3 +116,66 @@ export async function updateFieldSettings(captureName: boolean, capturePhone: bo
     };
   }
 }
+
+export async function testWebhook() {
+  try {
+    const headersList = await headers();
+    const clientId = headersList.get('x-client-id');
+
+    if (!clientId) {
+      return { success: false, error: 'Authentication required.' };
+    }
+
+    // Get client info including webhook URL
+    const client = await db
+      .select()
+      .from(clients)
+      .where(eq(clients.id, clientId))
+      .limit(1);
+
+    if (client.length === 0) {
+      return { success: false, error: 'Client not found.' };
+    }
+
+    const webhookUrl = client[0].webhookUrl;
+    if (!webhookUrl) {
+      return { success: false, error: 'No webhook URL configured.' };
+    }
+
+    // Send test webhook with placeholder data
+    const testData = {
+      event: 'test_webhook',
+      lead: {
+        id: 'test-lead-id',
+        email: 'test@example.com',
+        name: 'Test User',
+        phone: '+1-555-0123',
+        createdAt: new Date().toISOString(),
+      },
+      client: {
+        id: client[0].id,
+        username: client[0].username,
+      },
+    };
+
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(testData),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Webhook test failed with status: ${response.status}`);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error testing webhook:', error);
+    return { 
+      success: false, 
+      error: 'Failed to send test webhook. Please check your webhook URL.' 
+    };
+  }
+}

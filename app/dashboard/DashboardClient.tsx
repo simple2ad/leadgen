@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Client, Lead } from '@/lib/db';
-import { updateWebhookUrl, updateUsername, updateFieldSettings } from './actions';
+import { updateWebhookUrl, updateUsername, updateFieldSettings, testWebhook } from './actions';
 
 interface DashboardClientProps {
   client: Client;
@@ -15,7 +15,11 @@ export default function DashboardClient({ client, leads }: DashboardClientProps)
   const [captureName, setCaptureName] = useState(client.captureName || false);
   const [capturePhone, setCapturePhone] = useState(client.capturePhone || false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingWebhook, setIsSavingWebhook] = useState(false);
+  const [isTestingWebhook, setIsTestingWebhook] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+  const [webhookMessage, setWebhookMessage] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
 
   const handleSaveSettings = async () => {
     setIsSaving(true);
@@ -40,19 +44,48 @@ export default function DashboardClient({ client, leads }: DashboardClientProps)
         return;
       }
 
-      // Update webhook URL
-      const webhookResult = await updateWebhookUrl(webhookUrl);
-      if (!webhookResult.success) {
-        setSaveMessage(webhookResult.error || 'Failed to update webhook URL.');
-        setIsSaving(false);
-        return;
-      }
-
       setSaveMessage('Settings saved successfully!');
     } catch (error) {
       setSaveMessage('An error occurred while saving.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSaveWebhook = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingWebhook(true);
+    setWebhookMessage('');
+
+    try {
+      const webhookResult = await updateWebhookUrl(webhookUrl);
+      if (!webhookResult.success) {
+        setWebhookMessage(webhookResult.error || 'Failed to update webhook URL.');
+      } else {
+        setWebhookMessage('Webhook URL saved successfully!');
+      }
+    } catch (error) {
+      setWebhookMessage('An error occurred while saving.');
+    } finally {
+      setIsSavingWebhook(false);
+    }
+  };
+
+  const handleTestWebhook = async () => {
+    setIsTestingWebhook(true);
+    setWebhookMessage('');
+
+    try {
+      const testResult = await testWebhook();
+      if (!testResult.success) {
+        setWebhookMessage(testResult.error || 'Failed to test webhook.');
+      } else {
+        setWebhookMessage('Test webhook sent successfully! Check your automation platform.');
+      }
+    } catch (error) {
+      setWebhookMessage('An error occurred while testing webhook.');
+    } finally {
+      setIsTestingWebhook(false);
     }
   };
 
@@ -76,98 +109,111 @@ export default function DashboardClient({ client, leads }: DashboardClientProps)
           <p className="text-gray-600 mt-2">Manage your leads and capture page settings.</p>
         </div>
 
-        {/* Settings Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Capture Page Settings */}
-          <div className="bg-white rounded-lg shadow p-6 lg:col-span-2">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Capture Page Settings</h2>
-            <div className="space-y-4">
-              {/* Username/URL */}
-              <div>
-                <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
-                  Your Username (URL)
-                </label>
-                <div className="flex space-x-2">
-                  <div className="flex-1">
-                    <input
-                      type="text"
-                      id="username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="your-username"
-                    />
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  This will change your capture page URL
-                </p>
-              </div>
-
-              {/* Field Configuration */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Capture Additional Fields
-                </label>
-                <div className="space-y-2">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={captureName}
-                      onChange={(e) => setCaptureName(e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Capture Full Name</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={capturePhone}
-                      onChange={(e) => setCapturePhone(e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Capture Phone Number</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Capture Page URL */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Your Capture Page URL
-                </label>
-                <div className="bg-gray-50 p-3 rounded border">
-                  <code className="text-sm break-all">{capturePageUrl}</code>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Share this URL to start collecting leads
-                </p>
-              </div>
-            </div>
+        {/* Capture Page Settings - Full Width */}
+        <div className="bg-white rounded-lg shadow p-6 mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Capture Page Settings</h2>
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              {showSettings ? 'Hide Settings' : 'Change Settings'}
+            </button>
           </div>
 
-        </div>
+          {/* Simple View - Always Visible */}
+          <div className="space-y-4">
+            {/* Capture Page URL */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Your Capture Page URL
+              </label>
+              <div className="flex items-center space-x-2">
+                <div className="flex-1 bg-gray-50 p-3 rounded border">
+                  <code className="text-sm break-all">{capturePageUrl}</code>
+                </div>
+                <button
+                  onClick={() => window.open(capturePageUrl, '_blank')}
+                  className="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 transition-colors whitespace-nowrap"
+                >
+                  Open in New Window
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Share this URL to start collecting leads
+              </p>
+            </div>
 
-        {/* Save Button */}
-        <div className="mb-8">
-          <button
-            onClick={handleSaveSettings}
-            disabled={isSaving}
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-md font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSaving ? 'Saving Settings...' : 'Save All Settings'}
-          </button>
-          {saveMessage && (
-            <p className={`text-sm mt-2 text-center ${
-              saveMessage.includes('successfully') ? 'text-green-600' : 'text-red-600'
-            }`}>
-              {saveMessage}
-            </p>
-          )}
+            {/* Advanced Settings - Hidden by Default */}
+            {showSettings && (
+              <div className="border-t pt-4 space-y-4">
+                {/* Username/URL */}
+                <div>
+                  <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                    Change Username (URL)
+                  </label>
+                  <input
+                    type="text"
+                    id="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="your-username"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    This will change your capture page URL
+                  </p>
+                </div>
+
+                {/* Field Configuration */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Capture Additional Fields
+                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={captureName}
+                        onChange={(e) => setCaptureName(e.target.checked)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Capture Full Name</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={capturePhone}
+                        onChange={(e) => setCapturePhone(e.target.checked)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Capture Phone Number</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Save Button */}
+                <button
+                  onClick={handleSaveSettings}
+                  disabled={isSaving}
+                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-md font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSaving ? 'Saving Settings...' : 'Save Settings'}
+                </button>
+                {saveMessage && (
+                  <p className={`text-sm text-center ${
+                    saveMessage.includes('successfully') ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {saveMessage}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Leads Table */}
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white rounded-lg shadow mb-8">
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900">Your Leads ({leads.length})</h2>
           </div>
@@ -232,15 +278,15 @@ export default function DashboardClient({ client, leads }: DashboardClientProps)
         </div>
 
         {/* Integration Guides */}
-        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Webhook Settings */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Webhook Settings - Separate Form */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Webhook Integration</h2>
-            <div className="space-y-3">
-              <p className="text-sm text-gray-600">
-                Set up a webhook URL to receive real-time notifications when you get new leads.
-              </p>
+            <form onSubmit={handleSaveWebhook} className="space-y-4">
               <div>
+                <p className="text-sm text-gray-600 mb-3">
+                  Set up a webhook URL to receive real-time notifications when you get new leads.
+                </p>
                 <label htmlFor="webhookUrl" className="block text-sm font-medium text-gray-700 mb-1">
                   Webhook URL
                 </label>
@@ -253,7 +299,36 @@ export default function DashboardClient({ client, leads }: DashboardClientProps)
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-            </div>
+
+              <div className="flex space-x-3">
+                <button
+                  type="submit"
+                  disabled={isSavingWebhook}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSavingWebhook ? 'Saving...' : 'Save Webhook'}
+                </button>
+
+                {webhookUrl && (
+                  <button
+                    type="button"
+                    onClick={handleTestWebhook}
+                    disabled={isTestingWebhook}
+                    className="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isTestingWebhook ? 'Testing...' : 'Test Webhook'}
+                  </button>
+                )}
+              </div>
+
+              {webhookMessage && (
+                <p className={`text-sm ${
+                  webhookMessage.includes('successfully') ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {webhookMessage}
+                </p>
+              )}
+            </form>
           </div>
 
           {/* Integration Guides */}
