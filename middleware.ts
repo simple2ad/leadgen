@@ -9,12 +9,6 @@ export async function middleware(request: NextRequest) {
   // Add security headers for iframe compatibility
   const response = NextResponse.next();
   
-  // Allow embedding in iframes from Whop domains and Vercel
-  response.headers.set(
-    'Content-Security-Policy',
-    "frame-ancestors 'self' https://*.whop.com https://*.vercel.app https://vercel.com"
-  );
-  
   // Allow cross-origin requests for iframe communication
   response.headers.set('Access-Control-Allow-Origin', '*');
   response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
