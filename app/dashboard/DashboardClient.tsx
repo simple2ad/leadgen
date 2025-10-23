@@ -2,13 +2,15 @@
 
 import { useState } from 'react';
 import { Client, Lead } from '@/lib/db';
+import { capturePages } from '@/lib/db/schema';
 
 interface DashboardClientProps {
   client: Client;
   leads: Lead[];
+  capturePages: typeof capturePages.$inferSelect[];
 }
 
-export default function DashboardClient({ client, leads }: DashboardClientProps) {
+export default function DashboardClient({ client, leads, capturePages }: DashboardClientProps) {
   const [webhookUrl, setWebhookUrl] = useState(client.webhookUrl || '');
   const [username, setUsername] = useState(client.username || '');
   const [captureName, setCaptureName] = useState(client.captureName || false);
@@ -176,16 +178,43 @@ export default function DashboardClient({ client, leads }: DashboardClientProps)
             Build custom capture pages with different designs, colors, and layouts. These pages are in addition to your default capture page.
           </p>
           
-          {/* Placeholder for saved capture pages */}
-          <div className="bg-gray-50 rounded-lg p-6 text-center">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No custom pages yet</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Create your first custom capture page to get started.
-            </p>
-          </div>
+          {/* Display saved capture pages */}
+          {capturePages.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {capturePages.map((page) => (
+                <div key={page.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <h3 className="font-medium text-gray-900 mb-2">{page.name}</h3>
+                  <p className="text-sm text-gray-600 mb-3">URL: /c/{page.slug}</p>
+                  <div className="flex space-x-2">
+                    <a
+                      href={`/c/${page.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-blue-600 text-white px-3 py-1 rounded text-xs font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      View
+                    </a>
+                    <a
+                      href="/dashboard/capture-builder"
+                      className="bg-gray-600 text-white px-3 py-1 rounded text-xs font-medium hover:bg-gray-700 transition-colors"
+                    >
+                      Edit
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-gray-50 rounded-lg p-6 text-center">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No custom pages yet</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Create your first custom capture page to get started.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Default Capture Page Settings - Full Width */}

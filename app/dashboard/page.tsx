@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { clients, leads } from '@/lib/db/schema';
+import { clients, leads, capturePages } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import DashboardClient from './DashboardClient';
@@ -51,10 +51,18 @@ export default async function DashboardPage() {
       .where(eq(leads.clientId, client[0].id))
       .orderBy(desc(leads.createdAt));
 
+    // Fetch capture pages for this client
+    const clientCapturePages = await db
+      .select()
+      .from(capturePages)
+      .where(eq(capturePages.clientId, client[0].id))
+      .orderBy(desc(capturePages.createdAt));
+
     return (
       <DashboardClient 
         client={client[0]} 
-        leads={clientLeads} 
+        leads={clientLeads}
+        capturePages={clientCapturePages}
       />
     );
   }
@@ -144,10 +152,18 @@ uYiGEfic4Qhni+HMfRBuUphOh7F3k8QgwZc9UlL0AHmyYqtbhL9NuJes6w==
       .where(eq(leads.clientId, client[0].id))
       .orderBy(desc(leads.createdAt));
 
+    // Fetch capture pages for this client
+    const clientCapturePages = await db
+      .select()
+      .from(capturePages)
+      .where(eq(capturePages.clientId, client[0].id))
+      .orderBy(desc(capturePages.createdAt));
+
     return (
       <DashboardClient 
         client={client[0]} 
-        leads={clientLeads} 
+        leads={clientLeads}
+        capturePages={clientCapturePages}
       />
     );
 

@@ -110,8 +110,7 @@ export default function CapturePage({ params }: CapturePageProps) {
           email,
           name: pageData?.captureName ? name : undefined,
           phone: pageData?.capturePhone ? phone : undefined,
-          clientId: pageData?.id,
-          capturePageId: pageData?.id,
+          username: pageData?.slug, // Use slug as username for now
         }),
       });
 
