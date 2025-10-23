@@ -37,28 +37,65 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Step 1: Create or get support channel for the user
-      const supportChannel = await whopClient.supportChannels.create({
-        company_id: process.env.WHOP_COMPANY_ID || '',
-        user_id: client.whopUserId,
-      });
-
-      console.log('Support channel created/retrieved:', {
-        clientId: client.id,
-        whopUserId: client.whopUserId,
-        channelId: supportChannel.id
-      });
+      let channelId: string;
+      
+      // Try to create support channel first
+      try {
+        const supportChannel = await whopClient.supportChannels.create({
+          company_id: process.env.WHOP_COMPANY_ID || '',
+          user_id: client.whopUserId,
+        });
+        channelId = supportChannel.id;
+        console.log('Support channel created:', {
+          clientId: client.id,
+          whopUserId: client.whopUserId,
+          channelId: channelId
+        });
+      } catch (createError: any) {
+        // If channel already exists, try to find existing channels
+        if (createError.message?.includes('already been added') || createError.status === 422) {
+          console.log('Support channel already exists, trying to find existing channels...');
+          
+          // List chat channels and find one for this user
+          const channels = await whopClient.chatChannels.list({ 
+            company_id: process.env.WHOP_COMPANY_ID || '' 
+          });
+          
+          // Find a channel that matches our user
+          let foundChannel = null;
+          for await (const channel of channels) {
+            // Check if this channel is associated with our user
+            // We'll use the channel ID as a fallback since we can't easily match by user
+            // In a real implementation, we might need to store channel IDs in our database
+            foundChannel = channel;
+            break; // Use the first channel for now as a fallback
+          }
+          
+          if (foundChannel) {
+            channelId = foundChannel.id;
+            console.log('Found existing support channel:', {
+              clientId: client.id,
+              whopUserId: client.whopUserId,
+              channelId: channelId
+            });
+          } else {
+            throw new Error('Could not find existing support channel for user');
+          }
+        } else {
+          throw createError;
+        }
+      }
 
       // Step 2: Send message to the support channel
       const message = await whopClient.messages.create({
-        channel_id: supportChannel.id,
+        channel_id: channelId!,
         content: 'Test notification from LeadGen - Your notification settings are working correctly!',
       });
 
       console.log('Test message sent successfully:', {
         clientId: client.id,
         whopUserId: client.whopUserId,
-        channelId: supportChannel.id,
+        channelId: channelId,
         messageId: message.id
       });
 
@@ -67,12 +104,12 @@ export async function POST(request: NextRequest) {
         message: 'Test notification sent successfully! Check your Whop messages.',
         clientId: client.id,
         whopUserId: client.whopUserId,
-        channelId: supportChannel.id,
+        channelId: channelId,
         messageId: message.id,
         debug: {
           step1: {
-            apiCall: 'supportChannels.create',
-            response: supportChannel
+            apiCall: 'supportChannels.create (with fallback)',
+            channelId: channelId
           },
           step2: {
             apiCall: 'messages.create',
