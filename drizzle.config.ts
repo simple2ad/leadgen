@@ -1,13 +1,13 @@
 import type { Config } from 'drizzle-kit';
 
 // Use POSTGRES_URL for Vercel/Neon, fallback to DATABASE_URL for local
-var databaseUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+const databaseUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL;
 
 if (!databaseUrl) {
   throw new Error('DATABASE_URL or POSTGRES_URL environment variable is required');
 }
 
-var config: Config = {
+const config: Config = {
   schema: './lib/db/schema.ts',
   out: './drizzle',
   dialect: 'postgresql',

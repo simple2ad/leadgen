@@ -7,79 +7,22 @@ import jwt from 'jsonwebtoken';
 
 export default async function DashboardPage() {
   const headersList = await headers();
-  const userToken = headersList.get('x-whop-user-token');
-  const devMode = headersList.get('x-dev-mode');
-  const authStatus = headersList.get('x-auth-status');
-  const authError = headersList.get('x-auth-error');
+  
+  // Get Whop token directly from headers (bypassing middleware)
+  let userToken = headersList.get('x-whop-user-token') || 
+                  headersList.get('authorization')?.replace('Bearer ', '') ||
+                  headersList.get('x-whop-token') ||
+                  headersList.get('whop-user-token') ||
+                  headersList.get('x-user-token') ||
+                  headersList.get('whop-token') ||
+                  headersList.get('x-whop-jwt') ||
+                  headersList.get('whop-jwt');
 
   // Debug: Get all headers for display
   const allHeaders = Object.fromEntries(headersList.entries());
 
-  // Check if authentication failed from middleware
-  if (authStatus === 'unauthorized') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="max-w-4xl w-full">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h1>
-            <p className="text-gray-600 mb-2">Please access this page through your Whop portal.</p>
-            {authError && (
-              <div className="mb-4">
-                <p className="text-sm text-red-500 mb-2">Error: {authError}</p>
-                {authError.includes('JWT validation failed') && (
-                  <div className="text-xs text-red-400 bg-red-50 p-2 rounded border border-red-200">
-                    <strong>JWT Issue Detected:</strong> This could be due to:
-                    <ul className="list-disc list-inside mt-1 ml-2">
-                      <li>Invalid JWT token format</li>
-                      <li>Wrong public key or algorithm</li>
-                      <li>Token expired or malformed</li>
-                      <li>Issuer/audience mismatch</li>
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          
-          {/* Debug Information */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-yellow-800 mb-4">Debug Information</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-medium text-yellow-700 mb-2">Authentication Headers:</h3>
-                <div className="bg-white border border-yellow-200 rounded p-3 text-sm">
-                  <div><strong>x-auth-status:</strong> {authStatus || 'Not set'}</div>
-                  <div><strong>x-auth-error:</strong> {authError || 'Not set'}</div>
-                  <div><strong>x-whop-user-token:</strong> {userToken ? '✓ Found' : '✗ Not found'}</div>
-                  <div><strong>x-dev-mode:</strong> {devMode || 'Not set'}</div>
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="font-medium text-yellow-700 mb-2">All Headers (First 10):</h3>
-                <div className="bg-white border border-yellow-200 rounded p-3 text-sm max-h-60 overflow-y-auto">
-                  {Object.entries(allHeaders).slice(0, 10).map(([key, value]) => (
-                    <div key={key} className="border-b border-gray-100 py-1">
-                      <strong>{key}:</strong> {value}
-                    </div>
-                  ))}
-                  {Object.keys(allHeaders).length > 10 && (
-                    <div className="text-gray-500 italic mt-2">
-                      ... and {Object.keys(allHeaders).length - 10} more headers
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Development mode bypass
-  if (devMode === 'true') {
+  // Development mode bypass (check for dev token or no token in dev)
+  if (process.env.NODE_ENV === 'development' && !userToken) {
     console.log('Development mode: Using test user');
     
     // Create or get a test client
