@@ -22,6 +22,8 @@ export default async function CapturePage({ params }: PageProps) {
       .limit(1);
 
     const displayName = client.length > 0 ? client[0].username : username;
+    const captureName = client.length > 0 ? client[0].captureName : false;
+    const capturePhone = client.length > 0 ? client[0].capturePhone : false;
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -35,7 +37,11 @@ export default async function CapturePage({ params }: PageProps) {
             </p>
           </div>
           
-          <LeadCaptureForm username={username} />
+          <LeadCaptureForm 
+            username={username} 
+            captureName={captureName}
+            capturePhone={capturePhone}
+          />
           
           <div className="mt-6 text-center text-sm text-gray-500">
             <p>We respect your privacy. Unsubscribe at any time.</p>
@@ -57,7 +63,11 @@ export default async function CapturePage({ params }: PageProps) {
             </p>
           </div>
           
-          <LeadCaptureForm username={username} />
+          <LeadCaptureForm 
+            username={username} 
+            captureName={false}
+            capturePhone={false}
+          />
           
           <div className="mt-6 text-center text-sm text-gray-500">
             <p>We respect your privacy. Unsubscribe at any time.</p>

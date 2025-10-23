@@ -4,10 +4,14 @@ import { useState } from 'react';
 
 interface LeadCaptureFormProps {
   username: string;
+  captureName: boolean;
+  capturePhone: boolean;
 }
 
-export default function LeadCaptureForm({ username }: LeadCaptureFormProps) {
+export default function LeadCaptureForm({ username, captureName, capturePhone }: LeadCaptureFormProps) {
   const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -22,7 +26,7 @@ export default function LeadCaptureForm({ username }: LeadCaptureFormProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, username }),
+        body: JSON.stringify({ email, username, name, phone }),
       });
 
       const result = await response.json();
@@ -46,6 +50,23 @@ export default function LeadCaptureForm({ username }: LeadCaptureFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {captureName && (
+        <div>
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+            Full Name
+          </label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+            placeholder="Your full name"
+          />
+        </div>
+      )}
+      
       <div>
         <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
           Email Address
@@ -61,6 +82,23 @@ export default function LeadCaptureForm({ username }: LeadCaptureFormProps) {
           placeholder="you@example.com"
         />
       </div>
+      
+      {capturePhone && (
+        <div>
+          <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+            Phone Number
+          </label>
+          <input
+            type="tel"
+            id="phone"
+            name="phone"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+            placeholder="Your phone number"
+          />
+        </div>
+      )}
       
       <button
         type="submit"

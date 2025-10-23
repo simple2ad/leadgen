@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, username } = await request.json();
+    const { email, username, name, phone } = await request.json();
 
     if (!email || !username) {
       return NextResponse.json(
@@ -57,6 +57,8 @@ export async function POST(request: NextRequest) {
       .insert(leads)
       .values({
         email,
+        name: name || null,
+        phone: phone || null,
         clientId: client[0].id,
       })
       .returning();
@@ -71,18 +73,20 @@ export async function POST(request: NextRequest) {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            event: 'new_lead',
-            lead: {
-              id: newLead[0].id,
-              email: newLead[0].email,
-              createdAt: newLead[0].createdAt,
-            },
-            client: {
-              id: client[0].id,
-              username: client[0].username,
-            },
-          }),
+        body: JSON.stringify({
+          event: 'new_lead',
+          lead: {
+            id: newLead[0].id,
+            email: newLead[0].email,
+            name: newLead[0].name,
+            phone: newLead[0].phone,
+            createdAt: newLead[0].createdAt,
+          },
+          client: {
+            id: client[0].id,
+            username: client[0].username,
+          },
+        }),
         });
         console.log('Webhook called successfully');
       } catch (webhookError) {

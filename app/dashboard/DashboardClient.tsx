@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Client, Lead } from '@/lib/db';
-import { updateWebhookUrl } from './actions';
+import { updateWebhookUrl, updateUsername, updateFieldSettings } from './actions';
 
 interface DashboardClientProps {
   client: Client;
@@ -11,20 +11,44 @@ interface DashboardClientProps {
 
 export default function DashboardClient({ client, leads }: DashboardClientProps) {
   const [webhookUrl, setWebhookUrl] = useState(client.webhookUrl || '');
+  const [username, setUsername] = useState(client.username || '');
+  const [captureName, setCaptureName] = useState(client.captureName || false);
+  const [capturePhone, setCapturePhone] = useState(client.capturePhone || false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
 
-  const handleSaveWebhook = async () => {
+  const handleSaveSettings = async () => {
     setIsSaving(true);
     setSaveMessage('');
 
     try {
-      const result = await updateWebhookUrl(webhookUrl);
-      if (result.success) {
-        setSaveMessage('Webhook URL saved successfully!');
-      } else {
-        setSaveMessage(result.error || 'Failed to save webhook URL.');
+      // Update username if changed
+      if (username !== client.username) {
+        const usernameResult = await updateUsername(username);
+        if (!usernameResult.success) {
+          setSaveMessage(usernameResult.error || 'Failed to update username.');
+          setIsSaving(false);
+          return;
+        }
       }
+
+      // Update field settings
+      const fieldResult = await updateFieldSettings(captureName, capturePhone);
+      if (!fieldResult.success) {
+        setSaveMessage(fieldResult.error || 'Failed to update field settings.');
+        setIsSaving(false);
+        return;
+      }
+
+      // Update webhook URL
+      const webhookResult = await updateWebhookUrl(webhookUrl);
+      if (!webhookResult.success) {
+        setSaveMessage(webhookResult.error || 'Failed to update webhook URL.');
+        setIsSaving(false);
+        return;
+      }
+
+      setSaveMessage('Settings saved successfully!');
     } catch (error) {
       setSaveMessage('An error occurred while saving.');
     } finally {
@@ -41,7 +65,7 @@ export default function DashboardClient({ client, leads }: DashboardClientProps)
     });
   };
 
-  const capturePageUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/${client.username}`;
+  const capturePageUrl = `https://leadgen-saas.vercel.app/${username}`;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -52,20 +76,73 @@ export default function DashboardClient({ client, leads }: DashboardClientProps)
           <p className="text-gray-600 mt-2">Manage your leads and capture page settings.</p>
         </div>
 
-        {/* Stats and Capture Page URL */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Your Capture Page</h2>
-            <div className="space-y-3">
-              <p className="text-sm text-gray-600">
-                Share this URL to start collecting leads:
-              </p>
-              <div className="bg-gray-50 p-3 rounded border">
-                <code className="text-sm break-all">{capturePageUrl}</code>
+        {/* Settings Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Capture Page Settings */}
+          <div className="bg-white rounded-lg shadow p-6 lg:col-span-2">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Capture Page Settings</h2>
+            <div className="space-y-4">
+              {/* Username/URL */}
+              <div>
+                <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                  Your Username (URL)
+                </label>
+                <div className="flex space-x-2">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      id="username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="your-username"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  This will change your capture page URL
+                </p>
               </div>
-              <p className="text-xs text-gray-500">
-                Total leads captured: <span className="font-semibold">{leads.length}</span>
-              </p>
+
+              {/* Field Configuration */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Capture Additional Fields
+                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={captureName}
+                      onChange={(e) => setCaptureName(e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Capture Full Name</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={capturePhone}
+                      onChange={(e) => setCapturePhone(e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Capture Phone Number</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Capture Page URL */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Your Capture Page URL
+                </label>
+                <div className="bg-gray-50 p-3 rounded border">
+                  <code className="text-sm break-all">{capturePageUrl}</code>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Share this URL to start collecting leads
+                </p>
+              </div>
             </div>
           </div>
 
@@ -89,28 +166,32 @@ export default function DashboardClient({ client, leads }: DashboardClientProps)
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-              <button
-                onClick={handleSaveWebhook}
-                disabled={isSaving}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSaving ? 'Saving...' : 'Save Webhook URL'}
-              </button>
-              {saveMessage && (
-                <p className={`text-sm ${
-                  saveMessage.includes('successfully') ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {saveMessage}
-                </p>
-              )}
             </div>
           </div>
+        </div>
+
+        {/* Save Button */}
+        <div className="mb-8">
+          <button
+            onClick={handleSaveSettings}
+            disabled={isSaving}
+            className="w-full bg-blue-600 text-white py-3 px-4 rounded-md font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSaving ? 'Saving Settings...' : 'Save All Settings'}
+          </button>
+          {saveMessage && (
+            <p className={`text-sm mt-2 text-center ${
+              saveMessage.includes('successfully') ? 'text-green-600' : 'text-red-600'
+            }`}>
+              {saveMessage}
+            </p>
+          )}
         </div>
 
         {/* Leads Table */}
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Your Leads</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Your Leads ({leads.length})</h2>
           </div>
           <div className="overflow-x-auto">
             {leads.length > 0 ? (
@@ -120,6 +201,16 @@ export default function DashboardClient({ client, leads }: DashboardClientProps)
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Email
                     </th>
+                    {captureName && (
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Name
+                      </th>
+                    )}
+                    {capturePhone && (
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Phone
+                      </th>
+                    )}
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Date Captured
                     </th>
@@ -131,6 +222,16 @@ export default function DashboardClient({ client, leads }: DashboardClientProps)
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {lead.email}
                       </td>
+                      {captureName && (
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {lead.name || '-'}
+                        </td>
+                      )}
+                      {capturePhone && (
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {lead.phone || '-'}
+                        </td>
+                      )}
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {formatDate(lead.createdAt)}
                       </td>
