@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Client, Lead } from '@/lib/db';
-import { updateWebhookUrl, updateUsername, updateFieldSettings, testWebhook } from './actions';
 
 interface DashboardClientProps {
   client: Client;
@@ -26,25 +25,25 @@ export default function DashboardClient({ client, leads }: DashboardClientProps)
     setSaveMessage('');
 
     try {
-      // Update username if changed
-      if (username !== client.username) {
-        const usernameResult = await updateUsername(username, client.id);
-        if (!usernameResult.success) {
-          setSaveMessage(usernameResult.error || 'Failed to update username.');
-          setIsSaving(false);
-          return;
-        }
-      }
+      const response = await fetch(`/api/dashboard/settings?clientId=${client.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: username !== client.username ? username : undefined,
+          captureName,
+          capturePhone,
+        }),
+      });
 
-      // Update field settings
-      const fieldResult = await updateFieldSettings(captureName, capturePhone, client.id);
-      if (!fieldResult.success) {
-        setSaveMessage(fieldResult.error || 'Failed to update field settings.');
-        setIsSaving(false);
-        return;
-      }
+      const result = await response.json();
 
-      setSaveMessage('Settings saved successfully!');
+      if (!result.success) {
+        setSaveMessage(result.error || 'Failed to update settings.');
+      } else {
+        setSaveMessage('Settings saved successfully!');
+      }
     } catch (error) {
       setSaveMessage('An error occurred while saving.');
     } finally {
@@ -58,9 +57,18 @@ export default function DashboardClient({ client, leads }: DashboardClientProps)
     setWebhookMessage('');
 
     try {
-      const webhookResult = await updateWebhookUrl(webhookUrl, client.id);
-      if (!webhookResult.success) {
-        setWebhookMessage(webhookResult.error || 'Failed to update webhook URL.');
+      const response = await fetch(`/api/dashboard/webhook?clientId=${client.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ webhookUrl }),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        setWebhookMessage(result.error || 'Failed to update webhook URL.');
       } else {
         setWebhookMessage('Webhook URL saved successfully!');
       }
@@ -76,9 +84,17 @@ export default function DashboardClient({ client, leads }: DashboardClientProps)
     setWebhookMessage('');
 
     try {
-      const testResult = await testWebhook(client.id);
-      if (!testResult.success) {
-        setWebhookMessage(testResult.error || 'Failed to test webhook.');
+      const response = await fetch(`/api/dashboard/test-webhook?clientId=${client.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        setWebhookMessage(result.error || 'Failed to test webhook.');
       } else {
         setWebhookMessage('Test webhook sent successfully! Check your automation platform.');
       }
