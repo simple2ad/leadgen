@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { submitLead } from './actions';
 
 interface LeadCaptureFormProps {
   username: string;
@@ -18,16 +17,28 @@ export default function LeadCaptureForm({ username }: LeadCaptureFormProps) {
     setMessage('');
 
     try {
-      const result = await submitLead(email, username);
+      const response = await fetch('/api/leads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, username }),
+      });
+
+      const result = await response.json();
       
-      if (result.success) {
+      if (response.ok && result.success) {
         setMessage('Success! Redirecting...');
-        // The server action will handle the redirect
+        // Redirect to thank you page
+        setTimeout(() => {
+          window.location.href = result.redirectUrl || `/${username}/thank-you`;
+        }, 1000);
       } else {
         setMessage(result.error || 'Something went wrong. Please try again.');
       }
     } catch (error) {
       setMessage('An error occurred. Please try again.');
+      console.error('Form submission error:', error);
     } finally {
       setIsSubmitting(false);
     }
