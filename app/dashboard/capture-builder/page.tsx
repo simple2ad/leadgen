@@ -207,35 +207,20 @@ export default function CaptureBuilderPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Capture Page Builder</h1>
-          <p className="text-gray-600 mt-2">Create and customize your lead capture pages</p>
-        </div>
-
-        {/* View Mode Toggle */}
-        <div className="flex justify-center mb-8">
-          <div className="bg-white rounded-lg shadow-sm p-1">
-            <button
-              onClick={() => setViewMode('builder')}
-              className={`px-6 py-2 rounded-md font-medium transition-colors ${
-                viewMode === 'builder' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Capture Page Builder</h1>
+              <p className="text-gray-600 mt-2">Create and customize your lead capture pages</p>
+            </div>
+            <a
+              href="/dashboard"
+              className="bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors"
             >
-              Builder
-            </button>
-            <button
-              onClick={() => setViewMode('templates')}
-              className={`px-6 py-2 rounded-md font-medium transition-colors ${
-                viewMode === 'templates' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Templates
-            </button>
+              ← Back to Dashboard
+            </a>
           </div>
         </div>
+
 
         {viewMode === 'builder' ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -247,7 +232,7 @@ export default function CaptureBuilderPage() {
                   onClick={() => setViewMode('templates')}
                   className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
                 >
-                  Templates
+                  Switch Template
                 </button>
               </div>
             
@@ -441,13 +426,24 @@ export default function CaptureBuilderPage() {
           /* Templates View */
           <div className="bg-white rounded-lg shadow-lg p-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-gray-900">Choose a Template</h2>
-              <button
-                onClick={() => setViewMode('builder')}
-                className="bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors"
-              >
-                Back to Builder
-              </button>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Choose a Template</h2>
+                <p className="text-gray-600 mt-1">Select a template to start customizing</p>
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setViewMode('builder')}
+                  className="bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors"
+                >
+                  Back to Builder
+                </button>
+                <a
+                  href="/dashboard"
+                  className="bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors"
+                >
+                  ← Back to Dashboard
+                </a>
+              </div>
             </div>
             
             <p className="text-gray-600 mb-8">

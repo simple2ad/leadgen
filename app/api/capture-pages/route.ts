@@ -152,14 +152,17 @@ uYiGEfic4Qhni+HMfRBuUphOh7F3k8QgwZc9UlL0AHmyYqtbhL9NuJes6w==
         fontFamily,
         captureName: captureName || false,
         capturePhone: capturePhone || false,
-        isActive: false,
+        isActive: true, // Set as active immediately
       })
       .returning();
 
+    // Generate shorter URL using just the slug (more user-friendly)
+    const shortUrl = `https://leadgen-saas.vercel.app/c/${slug}`;
+    
     return NextResponse.json({
       success: true,
       page: newPage,
-      url: `https://leadgen-saas.vercel.app/c/${clientId}/${slug}`
+      url: shortUrl
     });
 
   } catch (error) {
