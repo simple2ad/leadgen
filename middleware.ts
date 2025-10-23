@@ -10,8 +10,9 @@ export async function middleware(request: NextRequest) {
   response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-whop-user-token');
   
-  // Only protect the dashboard route
-  if (!request.nextUrl.pathname.startsWith('/dashboard')) {
+  // Only protect the dashboard route for GET requests
+  // Server Actions use POST requests and should bypass middleware
+  if (!request.nextUrl.pathname.startsWith('/dashboard') || request.method !== 'GET') {
     return response;
   }
 
@@ -80,8 +81,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/dashboard/:path*',
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  // Only match the dashboard page itself, not Server Actions
+  matcher: ['/dashboard'],
 };
