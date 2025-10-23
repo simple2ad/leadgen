@@ -22,10 +22,17 @@ export async function middleware(request: NextRequest) {
   try {
     // Get Whop JWT token from headers (following your PHP implementation)
     const headersList = request.headers;
+    
+    // Debug: Log all headers to see what Whop is sending
+    console.log('=== WHOP AUTH DEBUG ===');
+    console.log('All headers:', Object.fromEntries(headersList.entries()));
+    
     let userToken = headersList.get('x-whop-user-token') || 
                     headersList.get('authorization')?.replace('Bearer ', '') ||
                     request.nextUrl.searchParams.get('token') ||
                     request.nextUrl.searchParams.get('whop-dev-user-token');
+
+    console.log('Extracted userToken:', userToken ? 'Token found (length: ' + userToken.length + ')' : 'No token found');
 
     // Check for other common Whop header names (from your PHP code)
     if (!userToken) {
@@ -42,6 +49,7 @@ export async function middleware(request: NextRequest) {
         const value = headersList.get(headerName);
         if (value) {
           userToken = value;
+          console.log('Found token in header:', headerName);
           break;
         }
       }
