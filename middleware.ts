@@ -81,6 +81,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Only match the dashboard page itself, not Server Actions
-  matcher: ['/dashboard'],
+  // Don't match any routes - we'll handle authentication in the dashboard page
+  matcher: [],
 };

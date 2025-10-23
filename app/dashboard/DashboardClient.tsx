@@ -28,7 +28,7 @@ export default function DashboardClient({ client, leads }: DashboardClientProps)
     try {
       // Update username if changed
       if (username !== client.username) {
-        const usernameResult = await updateUsername(username);
+        const usernameResult = await updateUsername(username, client.id);
         if (!usernameResult.success) {
           setSaveMessage(usernameResult.error || 'Failed to update username.');
           setIsSaving(false);
@@ -37,7 +37,7 @@ export default function DashboardClient({ client, leads }: DashboardClientProps)
       }
 
       // Update field settings
-      const fieldResult = await updateFieldSettings(captureName, capturePhone);
+      const fieldResult = await updateFieldSettings(captureName, capturePhone, client.id);
       if (!fieldResult.success) {
         setSaveMessage(fieldResult.error || 'Failed to update field settings.');
         setIsSaving(false);
@@ -58,7 +58,7 @@ export default function DashboardClient({ client, leads }: DashboardClientProps)
     setWebhookMessage('');
 
     try {
-      const webhookResult = await updateWebhookUrl(webhookUrl);
+      const webhookResult = await updateWebhookUrl(webhookUrl, client.id);
       if (!webhookResult.success) {
         setWebhookMessage(webhookResult.error || 'Failed to update webhook URL.');
       } else {
@@ -76,7 +76,7 @@ export default function DashboardClient({ client, leads }: DashboardClientProps)
     setWebhookMessage('');
 
     try {
-      const testResult = await testWebhook();
+      const testResult = await testWebhook(client.id);
       if (!testResult.success) {
         setWebhookMessage(testResult.error || 'Failed to test webhook.');
       } else {

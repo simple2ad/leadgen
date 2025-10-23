@@ -5,15 +5,8 @@ import { clients } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 
-export async function updateWebhookUrl(webhookUrl: string) {
+export async function updateWebhookUrl(webhookUrl: string, clientId: string) {
   try {
-    const headersList = await headers();
-    const clientId = headersList.get('x-client-id');
-
-    if (!clientId) {
-      return { success: false, error: 'Authentication required.' };
-    }
-
     // Validate URL format if provided
     if (webhookUrl && !isValidUrl(webhookUrl)) {
       return { success: false, error: 'Please enter a valid URL.' };
@@ -44,15 +37,8 @@ function isValidUrl(string: string) {
   }
 }
 
-export async function updateUsername(username: string) {
+export async function updateUsername(username: string, clientId: string) {
   try {
-    const headersList = await headers();
-    const clientId = headersList.get('x-client-id');
-
-    if (!clientId) {
-      return { success: false, error: 'Authentication required.' };
-    }
-
     // Validate username
     if (!username || username.trim().length < 3) {
       return { success: false, error: 'Username must be at least 3 characters long.' };
@@ -89,15 +75,8 @@ export async function updateUsername(username: string) {
   }
 }
 
-export async function updateFieldSettings(captureName: boolean, capturePhone: boolean) {
+export async function updateFieldSettings(captureName: boolean, capturePhone: boolean, clientId: string) {
   try {
-    const headersList = await headers();
-    const clientId = headersList.get('x-client-id');
-
-    if (!clientId) {
-      return { success: false, error: 'Authentication required.' };
-    }
-
     // Update the client's field settings
     await db
       .update(clients)
@@ -117,15 +96,8 @@ export async function updateFieldSettings(captureName: boolean, capturePhone: bo
   }
 }
 
-export async function testWebhook() {
+export async function testWebhook(clientId: string) {
   try {
-    const headersList = await headers();
-    const clientId = headersList.get('x-client-id');
-
-    if (!clientId) {
-      return { success: false, error: 'Authentication required.' };
-    }
-
     // Get client info including webhook URL
     const client = await db
       .select()
