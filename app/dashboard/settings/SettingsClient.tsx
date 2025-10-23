@@ -15,6 +15,8 @@ export default function SettingsClient({ client }: SettingsClientProps) {
   const [isTesting, setIsTesting] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [testMessage, setTestMessage] = useState('');
+  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [showDebug, setShowDebug] = useState(false);
 
   const handleSaveSettings = async () => {
     setIsSaving(true);
@@ -48,8 +50,10 @@ export default function SettingsClient({ client }: SettingsClientProps) {
   const handleTestNotification = async () => {
     setIsTesting(true);
     setTestMessage('');
+    setDebugInfo(null);
 
     try {
+      const startTime = Date.now();
       const response = await fetch(`/api/dashboard/test-notification?clientId=${client.id}`, {
         method: 'POST',
         headers: {
@@ -57,7 +61,31 @@ export default function SettingsClient({ client }: SettingsClientProps) {
         },
       });
 
+      const endTime = Date.now();
       const result = await response.json();
+
+      // Capture debug information
+      const debugData = {
+        timestamp: new Date().toISOString(),
+        responseTime: `${endTime - startTime}ms`,
+        status: response.status,
+        statusText: response.statusText,
+        url: `/api/dashboard/test-notification?clientId=${client.id}`,
+        request: {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+        response: result,
+        clientInfo: {
+          id: client.id,
+          whopUserId: client.whopUserId,
+          notifyOnNewLeads: client.notifyOnNewLeads,
+        }
+      };
+
+      setDebugInfo(debugData);
 
       if (!result.success) {
         setTestMessage(result.error || 'Failed to send test notification.');
@@ -65,6 +93,16 @@ export default function SettingsClient({ client }: SettingsClientProps) {
         setTestMessage('Test notification sent successfully! Check your Whop messages.');
       }
     } catch (error) {
+      const debugData = {
+        timestamp: new Date().toISOString(),
+        error: error instanceof Error ? error.message : 'Unknown error',
+        clientInfo: {
+          id: client.id,
+          whopUserId: client.whopUserId,
+          notifyOnNewLeads: client.notifyOnNewLeads,
+        }
+      };
+      setDebugInfo(debugData);
       setTestMessage('An error occurred while sending test notification.');
     } finally {
       setIsTesting(false);
@@ -170,6 +208,83 @@ export default function SettingsClient({ client }: SettingsClientProps) {
             </div>
           </div>
         </div>
+
+        {/* Debug Information Section */}
+        {debugInfo && (
+          <div className="bg-yellow-50 rounded-lg p-6 mt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-yellow-900">Debug Information</h3>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setShowDebug(!showDebug)}
+                  className="bg-yellow-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-yellow-700 transition-colors"
+                >
+                  {showDebug ? 'Hide Details' : 'Show Details'}
+                </button>
+                <button
+                  onClick={() => setDebugInfo(null)}
+                  className="bg-gray-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-gray-700 transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <strong className="text-yellow-800">Timestamp:</strong>
+                  <div className="text-yellow-700">{debugInfo.timestamp}</div>
+                </div>
+                {debugInfo.responseTime && (
+                  <div>
+                    <strong className="text-yellow-800">Response Time:</strong>
+                    <div className="text-yellow-700">{debugInfo.responseTime}</div>
+                  </div>
+                )}
+                {debugInfo.status && (
+                  <div>
+                    <strong className="text-yellow-800">Status:</strong>
+                    <div className={`font-mono ${debugInfo.status >= 400 ? 'text-red-600' : 'text-green-600'}`}>
+                      {debugInfo.status} {debugInfo.statusText}
+                    </div>
+                  </div>
+                )}
+                {debugInfo.url && (
+                  <div>
+                    <strong className="text-yellow-800">API Endpoint:</strong>
+                    <div className="text-yellow-700 font-mono text-xs">{debugInfo.url}</div>
+                  </div>
+                )}
+              </div>
+
+              {showDebug && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium text-yellow-800 mb-2">Full Response:</h4>
+                  <pre className="bg-white border border-yellow-200 rounded p-3 text-xs overflow-x-auto text-yellow-800">
+                    {JSON.stringify(debugInfo, null, 2)}
+                  </pre>
+                </div>
+              )}
+
+              {debugInfo.error && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded">
+                  <h4 className="text-sm font-medium text-red-800 mb-1">Error:</h4>
+                  <p className="text-red-700 text-sm">{debugInfo.error}</p>
+                </div>
+              )}
+
+              {debugInfo.response?.debug && (
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                  <h4 className="text-sm font-medium text-blue-800 mb-1">API Debug Info:</h4>
+                  <pre className="text-blue-700 text-xs overflow-x-auto">
+                    {JSON.stringify(debugInfo.response.debug, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Coming Soon Section */}
         <div className="bg-blue-50 rounded-lg p-6 mt-6">
