@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    
     // Get client data
     const client = await db.query.clients.findFirst({
       where: eq(clients.id, clientId),
