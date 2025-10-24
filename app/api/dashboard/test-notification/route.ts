@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       // First, let's try to get existing support channels
       console.log('Getting existing support channels...');
       
-      const channelsResponse = await fetch('https://api.whop.com/api/v5/support-channels', {
+      const channelsResponse = await fetch(`https://api.whop.com/api/v1/support_channels?company_id=${companyId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${whopApiKey}`,
@@ -78,16 +78,16 @@ export async function POST(request: NextRequest) {
 
       // Find a channel that might work for our user
       let channelId = null;
-      if (channelsData && channelsData.length > 0) {
+      if (channelsData && channelsData.data && channelsData.data.length > 0) {
         // Use the first available channel
-        channelId = channelsData[0].id;
+        channelId = channelsData.data[0].id;
         console.log('Using channel:', channelId);
       } else {
         throw new Error('No support channels available');
       }
 
       // Send message to the support channel
-      const messageResponse = await fetch('https://api.whop.com/api/v5/messages', {
+      const messageResponse = await fetch('https://api.whop.com/api/v1/messages', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${whopApiKey}`,
@@ -123,12 +123,12 @@ export async function POST(request: NextRequest) {
         messageId: messageResult.id,
         debug: {
           step1: {
-            apiCall: 'GET /api/v5/support-channels',
+            apiCall: 'GET /api/v1/support_channels',
             status: channelsResponse.status,
-            channelsCount: channelsData?.length || 0
+            channelsCount: channelsData?.data?.length || 0
           },
           step2: {
-            apiCall: 'POST /api/v5/messages',
+            apiCall: 'POST /api/v1/messages',
             status: messageResponse.status,
             response: messageResult
           }
