@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { clients } from '@/lib/db/schema';
-import { whopClient } from '@/lib/whop-sdk';
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,51 +35,82 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Use direct API calls instead of SDK to avoid the 422 error
+    const whopApiKey = process.env.WHOP_API_KEY;
+    const companyId = process.env.WHOP_COMPANY_ID;
+    
+    if (!whopApiKey || !companyId) {
+      console.error('WHOP_API_KEY or WHOP_COMPANY_ID environment variables are not set');
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Notification service is not configured properly',
+          debug: {
+            missing: !whopApiKey ? 'WHOP_API_KEY' : 'WHOP_COMPANY_ID'
+          }
+        },
+        { status: 500 }
+      );
+    }
+
     try {
-      let channelId: string;
+      // Since we know the user is already added, we'll try to send a message directly
+      // First, let's try to get existing support channels
+      console.log('Getting existing support channels...');
       
-      // Since we know the user is already added, skip channel creation and use existing channels
-      console.log('User already added to feed, finding existing channels...');
-      
-      // List chat channels and find one to use
-      const channels = await whopClient.chatChannels.list({ 
-        company_id: process.env.WHOP_COMPANY_ID || '' 
+      const channelsResponse = await fetch('https://api.whop.com/api/v5/support_channels', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${whopApiKey}`,
+          'Content-Type': 'application/json',
+        },
       });
-      
-      // Find the first available channel
-      let foundChannel = null;
-      for await (const channel of channels) {
-        foundChannel = channel;
-        break; // Use the first channel available
+
+      if (!channelsResponse.ok) {
+        console.error('Failed to get support channels:', channelsResponse.status);
+        // If we can't get channels, try a different approach
+        throw new Error(`Failed to get support channels: ${channelsResponse.status}`);
       }
-      
-      if (foundChannel) {
-        channelId = foundChannel.id;
-        console.log('Using existing support channel:', {
-          clientId: client.id,
-          whopUserId: client.whopUserId,
-          channelId: channelId
-        });
+
+      const channelsData = await channelsResponse.json();
+      console.log('Available support channels:', channelsData);
+
+      // Find a channel that might work for our user
+      let channelId = null;
+      if (channelsData && channelsData.length > 0) {
+        // Use the first available channel
+        channelId = channelsData[0].id;
+        console.log('Using channel:', channelId);
       } else {
-        // If no channels found, try a different approach - use direct messages
-        console.log('No existing channels found, trying alternative approach...');
-        
-        // For now, we'll create a simple message without a specific channel
-        // This is a fallback - in production you might want to handle this differently
-        throw new Error('No suitable channels found for sending notifications');
+        throw new Error('No support channels available');
       }
 
-      // Step 2: Send message to the support channel
-      const message = await whopClient.messages.create({
-        channel_id: channelId!,
-        content: 'Test notification from LeadGen - Your notification settings are working correctly!',
+      // Send message to the support channel
+      const messageResponse = await fetch('https://api.whop.com/api/v5/messages', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${whopApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: 'Test notification from LeadGen - Your notification settings are working correctly!',
+          channel_id: channelId,
+        }),
       });
 
+      if (!messageResponse.ok) {
+        const errorData = await messageResponse.text();
+        console.error('Failed to send message:', messageResponse.status, errorData);
+        throw new Error(`Failed to send message: ${messageResponse.status}`);
+      }
+
+      const messageResult = await messageResponse.json();
+      
       console.log('Test message sent successfully:', {
         clientId: client.id,
         whopUserId: client.whopUserId,
         channelId: channelId,
-        messageId: message.id
+        messageId: messageResult.id
       });
 
       return NextResponse.json({
@@ -89,25 +119,27 @@ export async function POST(request: NextRequest) {
         clientId: client.id,
         whopUserId: client.whopUserId,
         channelId: channelId,
-        messageId: message.id,
+        messageId: messageResult.id,
         debug: {
           step1: {
-            apiCall: 'chatChannels.list (existing channels)',
-            channelId: channelId
+            apiCall: 'GET /api/v5/support_channels',
+            status: channelsResponse.status,
+            channelsCount: channelsData?.length || 0
           },
           step2: {
-            apiCall: 'messages.create',
-            response: message
+            apiCall: 'POST /api/v5/messages',
+            status: messageResponse.status,
+            response: messageResult
           }
         }
       });
 
     } catch (apiError) {
-      console.error('Error calling Whop SDK:', apiError);
+      console.error('Error calling Whop API:', apiError);
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Failed to send notification via Whop SDK',
+          error: 'Failed to send notification',
           debug: {
             error: apiError instanceof Error ? apiError.message : 'Unknown error',
             stack: apiError instanceof Error ? apiError.stack : undefined
