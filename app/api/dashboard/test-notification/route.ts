@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       // First, let's try to get existing support channels
       console.log('Getting existing support channels...');
       
-      const channelsResponse = await fetch('https://api.whop.com/api/v5/support_channels', {
+      const channelsResponse = await fetch('https://api.whop.com/api/v5/support-channels', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${whopApiKey}`,
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
         messageId: messageResult.id,
         debug: {
           step1: {
-            apiCall: 'GET /api/v5/support_channels',
+            apiCall: 'GET /api/v5/support-channels',
             status: channelsResponse.status,
             channelsCount: channelsData?.length || 0
           },
