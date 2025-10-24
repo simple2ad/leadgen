@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { clients } from '@/lib/db/schema';
+import { whopClient } from '@/lib/whop-sdk';
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,18 +37,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Use direct API calls instead of SDK to avoid the 422 error
-    const whopApiKey = process.env.WHOP_API_KEY;
     const companyId = process.env.WHOP_COMPANY_ID;
     
-    if (!whopApiKey || !companyId) {
-      console.error('WHOP_API_KEY or WHOP_COMPANY_ID environment variables are not set');
+    if (!companyId) {
+      console.error('WHOP_COMPANY_ID environment variable is not set');
       return NextResponse.json(
         { 
           success: false, 
           error: 'Notification service is not configured properly',
           debug: {
-            missing: !whopApiKey ? 'WHOP_API_KEY' : 'WHOP_COMPANY_ID'
+            missing: 'WHOP_COMPANY_ID'
           }
         },
         { status: 500 }
@@ -55,63 +54,27 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Since we know the user is already added, we'll try to send a message directly
-      // First, let's try to get existing support channels
-      console.log('Getting existing support channels...');
+      // Use the SDK to create/get support channel for the user
+      console.log('Creating/getting support channel for user:', client.whopUserId);
       
-      const channelsResponse = await fetch(`https://api.whop.com/api/v1/support_channels?company_id=${companyId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${whopApiKey}`,
-          'Content-Type': 'application/json',
-        },
+      const supportChannel = await whopClient.supportChannels.create({
+        company_id: companyId,
+        user_id: client.whopUserId!,
       });
 
-      if (!channelsResponse.ok) {
-        console.error('Failed to get support channels:', channelsResponse.status);
-        // If we can't get channels, try a different approach
-        throw new Error(`Failed to get support channels: ${channelsResponse.status}`);
-      }
+      console.log('Support channel created/retrieved:', supportChannel);
 
-      const channelsData = await channelsResponse.json();
-      console.log('Available support channels:', channelsData);
-
-      // Find a channel that might work for our user
-      let channelId = null;
-      if (channelsData && channelsData.data && channelsData.data.length > 0) {
-        // Use the first available channel
-        channelId = channelsData.data[0].id;
-        console.log('Using channel:', channelId);
-      } else {
-        throw new Error('No support channels available');
-      }
-
-      // Send message to the support channel
-      const messageResponse = await fetch('https://api.whop.com/api/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${whopApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content: 'Test notification from LeadGen - Your notification settings are working correctly!',
-          channel_id: channelId,
-        }),
+      // Send message to the support channel using the SDK
+      const message = await whopClient.messages.create({
+        channel_id: supportChannel.id,
+        content: 'Test notification from LeadGen - Your notification settings are working correctly!',
       });
 
-      if (!messageResponse.ok) {
-        const errorData = await messageResponse.text();
-        console.error('Failed to send message:', messageResponse.status, errorData);
-        throw new Error(`Failed to send message: ${messageResponse.status}`);
-      }
-
-      const messageResult = await messageResponse.json();
-      
       console.log('Test message sent successfully:', {
         clientId: client.id,
         whopUserId: client.whopUserId,
-        channelId: channelId,
-        messageId: messageResult.id
+        channelId: supportChannel.id,
+        messageId: message.id
       });
 
       return NextResponse.json({
@@ -119,18 +82,18 @@ export async function POST(request: NextRequest) {
         message: 'Test notification sent successfully! Check your Whop messages.',
         clientId: client.id,
         whopUserId: client.whopUserId,
-        channelId: channelId,
-        messageId: messageResult.id,
+        channelId: supportChannel.id,
+        messageId: message.id,
         debug: {
           step1: {
-            apiCall: 'GET /api/v1/support_channels',
-            status: channelsResponse.status,
-            channelsCount: channelsData?.data?.length || 0
+            apiCall: 'POST /support_channels',
+            channelId: supportChannel.id,
+            channelName: supportChannel.custom_name
           },
           step2: {
-            apiCall: 'POST /api/v1/messages',
-            status: messageResponse.status,
-            response: messageResult
+            apiCall: 'POST /messages',
+            messageId: message.id,
+            content: message.content
           }
         }
       });
