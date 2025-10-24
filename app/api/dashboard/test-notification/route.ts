@@ -39,69 +39,35 @@ export async function POST(request: NextRequest) {
     try {
       let channelId: string;
       
-      // Try to create support channel first
-      try {
-        console.log('Attempting to create support channel...', {
-          company_id: process.env.WHOP_COMPANY_ID,
-          user_id: client.whopUserId
-        });
-        
-        const supportChannel = await whopClient.supportChannels.create({
-          company_id: process.env.WHOP_COMPANY_ID || '',
-          user_id: client.whopUserId,
-        });
-        channelId = supportChannel.id;
-        console.log('Support channel created:', {
+      // Since we know the user is already added, skip channel creation and use existing channels
+      console.log('User already added to feed, finding existing channels...');
+      
+      // List chat channels and find one to use
+      const channels = await whopClient.chatChannels.list({ 
+        company_id: process.env.WHOP_COMPANY_ID || '' 
+      });
+      
+      // Find the first available channel
+      let foundChannel = null;
+      for await (const channel of channels) {
+        foundChannel = channel;
+        break; // Use the first channel available
+      }
+      
+      if (foundChannel) {
+        channelId = foundChannel.id;
+        console.log('Using existing support channel:', {
           clientId: client.id,
           whopUserId: client.whopUserId,
           channelId: channelId
         });
-      } catch (createError: any) {
-        console.log('Support channel creation failed:', {
-          error: createError.message,
-          status: createError.status,
-          stack: createError.stack
-        });
+      } else {
+        // If no channels found, try a different approach - use direct messages
+        console.log('No existing channels found, trying alternative approach...');
         
-        // If channel already exists, try to find existing channels
-        if (createError.message?.includes('already been added') || 
-            createError.status === 422 || 
-            createError.message?.includes('422')) {
-          console.log('Support channel already exists, trying to find existing channels...');
-          
-          try {
-            // List chat channels and find one for this user
-            const channels = await whopClient.chatChannels.list({ 
-              company_id: process.env.WHOP_COMPANY_ID || '' 
-            });
-            
-            // Find a channel that matches our user
-            let foundChannel = null;
-            for await (const channel of channels) {
-              // Check if this channel is associated with our user
-              // We'll use the channel ID as a fallback since we can't easily match by user
-              // In a real implementation, we might need to store channel IDs in our database
-              foundChannel = channel;
-              break; // Use the first channel for now as a fallback
-            }
-            
-            if (foundChannel) {
-              channelId = foundChannel.id;
-              console.log('Found existing support channel:', {
-                clientId: client.id,
-                whopUserId: client.whopUserId,
-                channelId: channelId
-              });
-            } else {
-              throw new Error('Could not find existing support channel for user');
-            }
-          } catch (listError) {
-            console.error('Error listing chat channels:', listError);
-            throw new Error(`Failed to find existing channels: ${listError instanceof Error ? listError.message : 'Unknown error'}`);
-          }
-        } else {
-          throw createError;
-        }
+        // For now, we'll create a simple message without a specific channel
+        // This is a fallback - in production you might want to handle this differently
+        throw new Error('No suitable channels found for sending notifications');
       }
 
       // Step 2: Send message to the support channel
@@ -126,7 +92,7 @@ export async function POST(request: NextRequest) {
         messageId: message.id,
         debug: {
           step1: {
-            apiCall: 'supportChannels.create (with fallback)',
+            apiCall: 'chatChannels.list (existing channels)',
             channelId: channelId
           },
           step2: {
